@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PixelMaster by Santanu</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Dancing+Script:wght@700&family=Playfair+Display:wght@700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+       
+        :root {
+            --bg-body: #050505; --bg-panel: #141414; --bg-chip: #222;
+            --accent: #3b82f6; --text-main: #fff; --text-muted: #888; --border: #333;
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; font-family: 'Outfit', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-body); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+       
+        .header { height: 55px; background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; z-index: 10; }
+        .branding { display: flex; flex-direction: column; justify-content: center; }
+        .logo { font-weight: 800; font-size: 1.2rem; line-height: 1; letter-spacing: -0.5px; }
+        .logo span { color: var(--accent); }
+        .dev-name { font-size: 0.65rem; color: #555; font-weight: 500; letter-spacing: 1px; margin-top: 2px; }
+        
+        .header-actions { display: flex; gap: 10px; }
+        .icon-btn { width: 35px; height: 35px; border-radius: 8px; background: #222; border: 1px solid #333; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .save-btn { background: var(--accent); border: none; padding: 0 15px; width: auto; font-weight: 700; font-size: 0.85rem; }
+
+       
+        .workspace { flex: 1; position: relative; overflow: hidden; background-image: radial-gradient(#222 1px, transparent 1px); background-size: 20px 20px; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        canvas { max-width: 100%; max-height: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid #333; }
+        
+        .upload-ui { border: 2px dashed #444; padding: 40px; border-radius: 15px; text-align: center; color: #666; cursor: pointer; }
+        .loader { position: absolute; display: none; background: rgba(0,0,0,0.85); width: 100%; height: 100%; z-index: 50; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #333; border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 0.8s infinite linear; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+      
+        .controls-wrapper { background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; flex-direction: column; width: 100%; padding-bottom: env(safe-area-inset-bottom); }
+        .active-panel { height: 0; overflow: hidden; transition: 0.2s; background: #0f0f0f; border-bottom: 1px solid var(--border); }
+        .active-panel.show { height: auto; padding: 15px 20px; }
+
+      
+        .slider-row { display: flex; align-items: center; gap: 15px; margin-bottom: 8px; height: 40px; }
+        .label { width: 75px; font-size: 0.8rem; color: #aaa; font-weight: 500; }
+        .val { width: 35px; text-align: right; font-size: 0.8rem; color: var(--accent); font-weight: 700; }
+        
+        input[type=range] { flex: 1; -webkit-appearance: none; width: 100%; background: transparent; margin: 0; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #333; border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { height: 20px; width: 20px; border-radius: 50%; background: #ffffff; cursor: pointer; -webkit-appearance: none; margin-top: -8px; box-shadow: 0 0 10px rgba(0,0,0,0.5); border: 2px solid #000; }
+
+     
+        .tool-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; align-items: center; }
+        .color-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #444; flex-shrink: 0; cursor: pointer; position: relative; }
+        .color-dot.active { border-color: white; transform: scale(1.1); box-shadow: 0 0 10px var(--accent); }
+        .section-title { font-size: 0.7rem; color: #666; margin-right: 5px; font-weight: 700; text-transform: uppercase; }
+
+     
+        .sub-menu { display: flex; overflow-x: auto; gap: 10px; padding: 12px 15px; scrollbar-width: none; }
+        .chip { padding: 8px 18px; border-radius: 30px; background: var(--bg-chip); color: #ccc; font-size: 0.8rem; white-space: nowrap; cursor: pointer; border: 1px solid transparent; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+        .chip.active { background: var(--accent); color: #000; font-weight: 700; border-color: var(--accent); }
+        .chip.reset { border-color: #ef4444; color: #ef4444; background: transparent; }
+        
+        .main-dock { display: flex; overflow-x: auto; background: black; padding: 5px 0; }
+        .dock-item { flex: 0 0 75px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0; color: #666; font-size: 0.65rem; cursor: pointer; transition: 0.2s; }
+        .dock-item i { font-size: 1.25rem; }
+        .dock-item.active { color: var(--accent); }
+        .dock-item.active i { transform: translateY(-2px); color: var(--accent); }
+
+        #file-input { display: none; }
+        .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #222; padding: 10px 20px; border-radius: 30px; font-size: 0.9rem; display: none; z-index: 100; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #crop-btn { position: absolute; bottom: 30px; background: #22c55e; color: white; padding: 12px 25px; border-radius: 30px; font-weight: 700; display: none; z-index: 60; cursor: pointer; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="branding">
+            <div class="logo">Pixel<span>Master</span></div>
+            <div class="dev-name">DEV: SANTANU</div>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="performUndo()" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+            <button class="icon-btn save-btn" onclick="shareOrSave()">Save</button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <div class="upload-ui" id="upload-ui" onclick="document.getElementById('file-input').click()">
+            <i class="fa-solid fa-image" style="font-size: 3rem; margin-bottom:15px; color: var(--accent);"></i>
+            <h3>Open Photo</h3>
+        </div>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <div id="crop-btn" onclick="applyCrop()">Apply Crop</div>
+        <div class="loader" id="loader"><div class="spinner"></div><p style="margin-top:10px; color:#fff; font-weight:600;">Processing...</p></div>
+    </div>
+    
+    <input type="file" id="file-input" accept="image/*">
+    <div class="toast" id="toast">Action Applied</div>
+
+    <div class="controls-wrapper">
+        <div class="active-panel" id="active-panel"></div>
+        <div class="sub-menu" id="sub-menu"></div>
+        <div class="main-dock">
+            <div class="dock-item active" onclick="loadCategory('adjust')"><i class="fa-solid fa-sliders"></i>Adjust</div>
+            <div class="dock-item" onclick="loadCategory('filters')"><i class="fa-solid fa-wand-magic-sparkles"></i>Filters</div>
+            <div class="dock-item" onclick="loadCategory('ai')"><i class="fa-solid fa-robot"></i>AI Tools</div>
+            <div class="dock-item" onclick="loadCategory('text')"><i class="fa-solid fa-font"></i>Text</div>
+            <div class="dock-item" onclick="loadCategory('transform')"><i class="fa-solid fa-crop-simple"></i>Crop</div>
+            <div class="dock-item" onclick="loadCategory('draw')"><i class="fa-solid fa-paintbrush"></i>Draw</div>
+        </div>
+    </div>
+
+    <script>
+      
+        const tools = {
+            adjust: [
+                { id: 'reset', name: 'Reset All', icon: 'fa-ban', type: 'reset' },
+                { id: 'brightness', name: 'Bright', min: -100, max: 100, val: 0 },
+                { id: 'contrast', name: 'Contrast', min: -100, max: 100, val: 0 },
+                { id: 'exposure', name: 'Exposure', min: -100, max: 100, val: 0 },
+                { id: 'saturation', name: 'Sat', min: -100, max: 100, val: 0 },
+                { id: 'sharpen', name: 'Sharpen', min: 0, max: 100, val: 0 },
+                { id: 'warmth', name: 'Warmth', min: -50, max: 50, val: 0 },
+                { id: 'tint', name: 'Tint', min: -50, max: 50, val: 0 },
+                { id: 'sepia', name: 'Sepia', min: 0, max: 100, val: 0 },
+                { id: 'bw', name: 'B&W', min: 0, max: 100, val: 0 },
+                { id: 'grain', name: 'Noise', min: 0, max: 100, val: 0 },
+                { id: 'vignette', name: 'Vignette', min: 0, max: 100, val: 0 }
+            ],
+            filters: [
+                { id: 'reset', name: 'None', icon: 'fa-ban', type: 'reset' },
+                { id: 'f-vivid', name: 'Vivid', type: 'preset' },
+                { id: 'f-drama', name: 'Drama', type: 'preset' },
+                { id: 'f-matte', name: 'Matte', type: 'preset' },
+                { id: 'f-fade', name: 'Faded', type: 'preset' },
+                { id: 'f-cool', name: 'Cool', type: 'preset' },
+                { id: 'f-warm', name: 'Summer', type: 'preset' },
+                { id: 'f-mono', name: 'Noir', type: 'preset' }
+            ],
+            ai: [
+                { id: 'reset', name: 'Reset AI', icon: 'fa-ban', type: 'reset' },
+                { id: 'ai-enhance', name: 'Auto Fix', icon: 'fa-wand-magic', type: 'ai' },
+                { id: 'ai-hdr', name: 'Smart HDR', icon: 'fa-eye', type: 'ai' },
+                { id: 'ai-port', name: 'Portrait', icon: 'fa-user', type: 'ai' },
+                { id: 'ai-cyber', name: 'Cyberpunk', icon: 'fa-bolt', type: 'ai' }
+            ],
+            text: [
+                { id: 'add-text', name: 'Add Text', icon: 'fa-plus', type: 'text-add' },
+                { id: 'reset', name: 'Delete All', icon: 'fa-trash', type: 'reset' }
+            ],
+            transform: [
+                { id: 'crop-free', name: 'Free Crop', icon: 'fa-crop', type: 'crop' },
+                { id: 'rot-90', name: 'Rotate', icon: 'fa-rotate-right', type: 'action' },
+                { id: 'flip-h', name: 'Flip H', icon: 'fa-arrows-left-right', type: 'action' },
+                { id: 'flip-v', name: 'Flip V', icon: 'fa-arrows-up-down', type: 'action' }
+            ],
+            draw: [
+                { id: 'reset', name: 'Clear', icon: 'fa-trash', type: 'reset' },
+                { id: 'pen-w', name: 'White', type: 'pen', color: '#ffffff' },
+                { id: 'pen-r', name: 'Red', type: 'pen', color: '#ef4444' },
+                { id: 'pen-b', name: 'Blue', type: 'pen', color: '#3b82f6' },
+                { id: 'pen-y', name: 'Yellow', type: 'pen', color: '#facc15' }
+            ]
+        };
+
+     
+        let img = new Image();
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const defaults = {
+            brightness: 0, contrast: 0, exposure: 0, saturation: 0, sharpen: 0,
+            warmth: 0, tint: 0, sepia: 0, bw: 0, grain: 0, vignette: 0,
+            rotate: 0, flipH: 1, flipV: 1,
+            strokes: [], texts: []
+        };
+
+        let state = JSON.parse(JSON.stringify(defaults));
+        let history = []; 
+        let activeCategory = 'adjust';
+        let isDrawing = false;
+        let brushColor = '#fff';
+        let isCropping = false;
+        let cropStart = {x:0, y:0};
+        let cropRect = {w:0, h:0};
+        let dragTextIdx = -1;
+
+      
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    img.onload = () => {
+                        const MAX = 1200;
+                        let w = img.width, h = img.height;
+                        if(w > MAX || h > MAX) { const r = Math.min(MAX/w, MAX/h); w*=r; h*=r; }
+                        canvas.width = w; canvas.height = h;
+                        
+                        document.getElementById('upload-ui').style.display = 'none';
+                        canvas.style.display = 'block';
+                        history = []; state = JSON.parse(JSON.stringify(defaults));
+                        render();
+                        loadCategory('adjust');
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+    
+        function applyPixelEngine(imageData) {
+            const data = imageData.data;
+            const w = canvas.width, h = canvas.height;
+            const cx = w/2, cy = h/2;
+            const maxDist = Math.sqrt(cx*cx + cy*cy);
+            const expFact = Math.pow(2, state.exposure/100);
+            const doSharpen = state.sharpen > 0;
+            const sharpMix = state.sharpen / 100;
+
+            for(let i=0; i<data.length; i+=4) {
+                let r = data[i], g = data[i+1], b = data[i+2];
+
+                if(state.exposure !== 0) { r *= expFact; g *= expFact; b *= expFact; }
+                r += state.brightness; g += state.brightness; b += state.brightness;
+
+                if(state.contrast !== 0) {
+                    const factor = (259 * (state.contrast + 255)) / (255 * (259 - state.contrast));
+                    r = factor * (r - 128) + 128; g = factor * (g - 128) + 128; b = factor * (b - 128) + 128;
+                }
+
+                if(state.saturation !== 0 || state.bw > 0) {
+                    const gray = 0.299*r + 0.587*g + 0.114*b;
+                    if(state.bw > 0) {
+                        const f = state.bw/100; r = r + (gray-r)*f; g = g + (gray-g)*f; b = b + (gray-b)*f;
+                    } else {
+                        const sat = 1 + (state.saturation/100);
+                        r = gray + (r-gray)*sat; g = gray + (g-gray)*sat; b = gray + (b-gray)*sat;
+                    }
+                }
+
+                r += state.warmth; b -= state.warmth; g += state.tint;
+                
+                if(state.sepia > 0) {
+                    const tr = 0.393*r + 0.769*g + 0.189*b;
+                    const tg = 0.349*r + 0.686*g + 0.168*b;
+                    const tb = 0.272*r + 0.534*g + 0.131*b;
+                    const f = state.sepia/100; r = r*(1-f) + tr*f; g = g*(1-f) + tg*f; b = b*(1-f) + tb*f;
+                }
+
+                if(doSharpen && i > 4) {
+                    r += (r - data[i-4]) * sharpMix; g += (g - data[i-3]) * sharpMix; b += (b - data[i-2]) * sharpMix;
+                }
+
+                if(state.vignette > 0) {
+                    const x = (i/4)%w, y = Math.floor((i/4)/w);
+                    const d = Math.sqrt((x-cx)**2 + (y-cy)**2);
+                    const f = 1 - (d/maxDist)*(state.vignette/100);
+                    r*=f; g*=f; b*=f;
+                }
+
+                if(state.grain > 0) {
+                    const noise = (Math.random()-0.5) * state.grain * 2;
+                    r+=noise; g+=noise; b+=noise;
+                }
+
+                data[i] = r; data[i+1] = g; data[i+2] = b;
+            }
+            return imageData;
+        }
+
+        function render() {
+            if(!img.src) return;
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(canvas.width/2, canvas.height/2);
+            ctx.rotate(state.rotate * Math.PI/180);
+            ctx.scale(state.flipH, state.flipV);
+            ctx.drawImage(img, -canvas.width/2, -canvas.height/2, canvas.width, canvas.height);
+            ctx.restore();
+
+            let iData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            iData = applyPixelEngine(iData);
+            ctx.putImageData(iData, 0, 0);
+
+            drawOverlays();
+            if(isCropping) drawCropBox();
+        }
+
+        function drawOverlays() {
+            if(state.strokes.length) {
+                ctx.lineCap='round'; ctx.lineJoin='round';
+                state.strokes.forEach(s => {
+                    ctx.beginPath(); ctx.lineWidth=s.size; ctx.strokeStyle=s.color;
+                    if(s.points.length) {
+                        ctx.moveTo(s.points[0].x, s.points[0].y);
+                        for(let i=1; i<s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+                    }
+                    ctx.stroke();
+                });
+            }
+            state.texts.forEach(t => {
+                ctx.save();
+                ctx.translate(t.x, t.y);
+                ctx.rotate((t.rotation || 0) * Math.PI/180);
+                
+                ctx.font = `${t.style||'normal'} bold ${t.size}px ${t.font}`;
+                ctx.textAlign = "center"; ctx.textBaseline="middle";
+                ctx.globalAlpha = t.opacity !== undefined ? t.opacity : 1;
+
+                if(t.bg) {
+                    const m = ctx.measureText(t.text);
+                    const h = t.size * 1.2;
+                    const w = m.width + 30;
+                    ctx.fillStyle = t.bg;
+                    ctx.fillRect(-w/2, -h/2, w, h);
+                }
+
+                ctx.fillStyle = t.color;
+                if(t.shadow) { ctx.shadowColor="rgba(0,0,0,0.8)"; ctx.shadowBlur=6; } else { ctx.shadowColor="transparent"; }
+                ctx.fillText(t.text, 0, 0);
+                if(t.stroke) { ctx.strokeStyle="black"; ctx.lineWidth=t.size/20; ctx.strokeText(t.text, 0, 0); }
+                
+                ctx.restore();
+            });
+        }
+
+      
+        function loadCategory(cat) {
+            activeCategory = cat;
+            
+            // BUG FIX: Check if event exists before accessing currentTarget
+            if (typeof event !== 'undefined' && event && event.currentTarget) {
+                document.querySelectorAll('.dock-item').forEach(e => e.classList.remove('active'));
+                event.currentTarget.classList.add('active');
+            }
+            
+            const sub = document.getElementById('sub-menu');
+            sub.innerHTML = '';
+            document.getElementById('active-panel').classList.remove('show');
+            isDrawing = false; isCropping = false; document.getElementById('crop-btn').style.display='none';
+
+            if(tools[cat]) {
+                tools[cat].forEach(t => {
+                    const btn = document.createElement('button');
+                    btn.className = `chip ${t.type==='reset'?'reset':''}`;
+                    btn.innerHTML = t.icon ? `<i class="fa-solid ${t.icon}"></i> ${t.name}` : t.name;
+                    btn.onclick = () => activateTool(t, btn, cat);
+                    sub.appendChild(btn);
+                });
+            }
+
+            if(cat === 'text') {
+                const panel = document.getElementById('active-panel');
+                panel.innerHTML = `
+                    <div class="tool-row" style="margin-bottom:10px;">
+                        <span class="section-title">Color</span>
+                        <div class="color-dot" style="background:#fff" onclick="updateText('color','#fff')"></div>
+                        <div class="color-dot" style="background:#000" onclick="updateText('color','#000')"></div>
+                        <div class="color-dot" style="background:#ef4444" onclick="updateText('color','#ef4444')"></div>
+                        <div class="color-dot" style="background:#facc15" onclick="updateText('color','#facc15')"></div>
+                        
+                        <span class="section-title" style="margin-left:10px">BG</span>
+                        <div class="color-dot" style="background:transparent; border:1px dashed #666" onclick="updateText('bg',null)"></div>
+                        <div class="color-dot" style="background:#fff" onclick="updateText('bg','#fff')"></div>
+                        <div class="color-dot" style="background:#000" onclick="updateText('bg','#000')"></div>
+                        <div class="color-dot" style="background:#3b82f6" onclick="updateText('bg','#3b82f6')"></div>
+                    </div>
+                    <div class="tool-row" style="margin-bottom:10px;">
+                        <button class="chip" onclick="updateText('font','Outfit')">Sans</button>
+                        <button class="chip" onclick="updateText('font','Playfair Display')">Serif</button>
+                        <button class="chip" onclick="updateText('font','Dancing Script')">Script</button>
+                        <button class="chip" onclick="updateText('style')">Italic</button>
+                        <button class="chip" onclick="updateText('stroke')">Outline</button>
+                        <button class="chip" onclick="updateText('shadow')">Shadow</button>
+                    </div>
+                    <div class="slider-row"><span class="label">Size</span><input type="range" min="20" max="200" value="60" oninput="updateText('size', this.value)"></div>
+                    <div class="slider-row"><span class="label">Angle</span><input type="range" min="-180" max="180" value="0" oninput="updateText('rotation', this.value)"></div>
+                    <div class="slider-row"><span class="label">Opacity</span><input type="range" min="0" max="1" step="0.1" value="1" oninput="updateText('opacity', this.value)"></div>`;
+                panel.classList.add('show');
+            }
+        }
+
+        function activateTool(tool, btn, cat) {
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            if(tool.type !== 'reset') btn.classList.add('active');
+
+            if(tool.type === 'reset') {
+                pushHistory();
+                if(cat==='adjust') ['brightness','contrast','exposure','saturation','warmth','tint','sharpen','grain','vignette'].forEach(k=>state[k]=0);
+                if(cat==='filters') { state.saturation=0; state.contrast=0; state.sepia=0; state.bw=0; state.warmth=0; state.tint=0; }
+                if(cat==='draw') state.strokes=[];
+                if(cat==='text') state.texts=[];
+                if(cat==='transform') { state.rotate=0; state.flipH=1; state.flipV=1; }
+                render(); showToast('Reset Done');
+                return;
+            }
+
+            if(tool.min !== undefined) {
+                const panel = document.getElementById('active-panel');
+                panel.innerHTML = `
+                    <div class="slider-row">
+                        <span class="label">${tool.name}</span>
+                        <input type="range" min="${tool.min}" max="${tool.max}" value="${state[tool.id]}" 
+                               oninput="updateVal('${tool.id}', this.value)" 
+                               ontouchstart="pushHistory()" onmousedown="pushHistory()">
+                        <span class="val" id="val-disp">${state[tool.id]}</span>
+                    </div>`;
+                panel.classList.add('show');
+            } else {
+                document.getElementById('active-panel').classList.remove('show');
+                if(tool.type === 'preset') applyPreset(tool.id);
+                if(tool.type === 'ai') applyAI(tool.id);
+                if(tool.type === 'action') { pushHistory(); applyAction(tool.id); }
+                if(tool.type === 'crop') { isCropping = true; showToast("Drag to Crop"); }
+                if(tool.type === 'pen') { isDrawing = true; brushColor = tool.color; }
+                if(tool.type === 'text-add') addText();
+            }
+        }
+
+        window.updateVal = (id, val) => {
+            state[id] = parseFloat(val);
+            document.getElementById('val-disp').innerText = val;
+            requestAnimationFrame(render);
+        };
+
+        window.updateText = (prop, val) => {
+            if(!state.texts.length) return;
+            pushHistory();
+            const t = state.texts[state.texts.length-1];
+            if(prop==='color') t.color = val;
+            if(prop==='bg') t.bg = val;
+            if(prop==='font') t.font = val;
+            if(prop==='style') t.style = t.style==='normal' ? 'italic' : 'normal';
+            if(prop==='size') t.size = parseInt(val);
+            if(prop==='rotation') t.rotation = parseInt(val);
+            if(prop==='opacity') t.opacity = parseFloat(val);
+            if(prop==='stroke') t.stroke = !t.stroke;
+            if(prop==='shadow') t.shadow = !t.shadow;
+            render();
+        };
+
+        function addText() {
+            pushHistory();
+            let t = prompt("Enter Text:");
+            if(t) {
+                state.texts.push({ 
+                    text: t, x: canvas.width/2, y: canvas.height/2, 
+                    size: 60, color: '#fff', bg: null, font: 'Outfit', 
+                    stroke: false, shadow: true, rotation: 0, opacity: 1, style:'normal'
+                });
+                render();
+            }
+        }
+
+        function applyPreset(id) {
+            pushHistory();
+            state.saturation=0; state.contrast=0; state.sepia=0; state.bw=0; state.warmth=0; state.tint=0;
+            if(id==='f-vivid') { state.saturation=40; state.contrast=20; }
+            if(id==='f-drama') { state.saturation=-20; state.contrast=30; state.vignette=30; }
+            if(id==='f-mono') { state.bw=100; state.contrast=20; }
+            if(id==='f-warm') { state.warmth=40; state.saturation=10; }
+            if(id==='f-cool') { state.tint=30; state.saturation=-10; }
+            if(id==='f-fade') { state.saturation=-40; state.contrast=-20; state.brightness=10; }
+            if(id==='f-matte') { state.contrast=-30; state.brightness=20; state.sepia=20; }
+            render();
+        }
+
+        function applyAI(id) {
+            pushHistory();
+            document.getElementById('loader').style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById('loader').style.display = 'none';
+                state.brightness=0; state.contrast=0; state.saturation=0; state.sharpen=0; 
+                if(id==='ai-enhance') { state.brightness=10; state.contrast=15; state.sharpen=20; state.saturation=10; }
+                if(id==='ai-hdr') { state.contrast=30; state.saturation=20; state.sharpen=30; }
+                if(id==='ai-port') { state.brightness=5; state.warmth=10; state.vignette=15; }
+                if(id==='ai-cyber') { state.tint=-30; state.saturation=40; state.contrast=20; }
+                render(); showToast('AI Applied');
+            }, 800);
+        }
+
+        function applyAction(id) {
+            if(id==='rot-90') state.rotate = (state.rotate+90)%360;
+            if(id==='flip-h') state.flipH *= -1;
+            if(id==='flip-v') state.flipV *= -1;
+            render();
+        }
+
+      
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: (cx-rect.left)*(canvas.width/rect.width), y: (cy-rect.top)*(canvas.height/rect.height) };
+        }
+
+        function drawCropBox() {
+            if(cropRect.w > 0) {
+                ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 4;
+                ctx.strokeRect(cropRect.x, cropRect.y, cropRect.w, cropRect.h);
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(0,0,canvas.width, cropRect.y);
+                ctx.fillRect(0, cropRect.y+cropRect.h, canvas.width, canvas.height-(cropRect.y+cropRect.h));
+                ctx.fillRect(0, cropRect.y, cropRect.x, cropRect.h);
+                ctx.fillRect(cropRect.x+cropRect.w, cropRect.y, canvas.width-(cropRect.x+cropRect.w), cropRect.h);
+            }
+        }
+
+        function applyCrop() {
+            pushHistory();
+            const data = ctx.getImageData(cropRect.x, cropRect.y, cropRect.w, cropRect.h);
+            canvas.width = cropRect.w; canvas.height = cropRect.h;
+            ctx.putImageData(data, 0, 0);
+            const newImg = new Image();
+            newImg.onload = () => {
+                img = newImg;
+                ['brightness','contrast','exposure','saturation','warmth','tint','sepia','bw','vignette'].forEach(k => state[k]=0);
+                isCropping = false; cropRect = {w:0,h:0};
+                document.getElementById('crop-btn').style.display = 'none';
+                render();
+            };
+            newImg.src = canvas.toDataURL();
+        }
+
+       
+        let paintPath = [];
+        canvas.addEventListener('mousedown', sP); canvas.addEventListener('touchstart', sP, {passive:false});
+        canvas.addEventListener('mousemove', mP); canvas.addEventListener('touchmove', mP, {passive:false});
+        canvas.addEventListener('mouseup', eP); canvas.addEventListener('touchend', eP);
+
+        function sP(e) {
+            if(e.type==='touchstart') e.preventDefault();
+            const p = getPos(e);
+            for(let i=state.texts.length-1; i>=0; i--) {
+                const t = state.texts[i];
+                if(Math.abs(p.x - t.x) < t.size*2 && Math.abs(p.y - t.y) < t.size) { dragTextIdx = i; return; }
+            }
+            if(isCropping) { cropStart = p; cropRect = {x:p.x, y:p.y, w:0, h:0}; document.getElementById('crop-btn').style.display='none'; }
+            else if(isDrawing) { pushHistory(); paintPath=[p]; }
+        }
+
+        function mP(e) {
+            if(e.type==='touchmove') e.preventDefault();
+            const p = getPos(e);
+            if(dragTextIdx > -1) { state.texts[dragTextIdx].x = p.x; state.texts[dragTextIdx].y = p.y; render(); return; }
+            if(isCropping && cropStart.x>0) { cropRect.w = p.x - cropStart.x; cropRect.h = p.y - cropStart.y; render(); return; }
+            if(isDrawing && paintPath.length>0) {
+                paintPath.push(p);
+                ctx.beginPath(); ctx.lineWidth=5*(canvas.width/1000); ctx.strokeStyle=brushColor; ctx.lineCap='round';
+                ctx.moveTo(paintPath[paintPath.length-2].x, paintPath[paintPath.length-2].y);
+                ctx.lineTo(p.x, p.y); ctx.stroke();
+            }
+        }
+
+        function eP() {
+            dragTextIdx = -1;
+            if(isCropping && cropRect.w > 20) document.getElementById('crop-btn').style.display='block';
+            if(isDrawing && paintPath.length) { state.strokes.push({color:brushColor, size:5*(canvas.width/1000), points:paintPath}); paintPath=[]; }
+        }
+
+       
+        function pushHistory() {
+            if(history.length > 50) history.shift();
+            history.push(JSON.parse(JSON.stringify(state)));
+        }
+
+        function performUndo() {
+            if(history.length === 0) return showToast('Nothing to Undo');
+            state = history.pop();
+            render();
+            showToast('Undo');
+        }
+
+        function shareOrSave() {
+            canvas.toBlob(blob => {
+                const file = new File([blob], "pixelmaster_edit.png", { type: "image/png" });
+                
+               
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        files: [file],
+                        title: 'PixelMaster Edit',
+                        text: 'Edited with PixelMaster Pro'
+                    }).then(() => showToast('Shared successfully'))
+                      .catch((error) => saveImageBlob(blob)); 
+                } else {
+                    saveImageBlob(blob); 
+                }
+            }, 'image/png');
+        }
+
+        function saveImageBlob(blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `pixelmaster_${Date.now()}.png`;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Saved to Downloads');
+        }
+
+        function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none',1500); }
+
+        loadCategory('adjust');
+    </script>
+</body>
+</html>
